@@ -41,7 +41,6 @@ def get_settings():
 def get_applications():
     settings = get_settings()
     applications = [app['application'] for app in settings]
-    print(applications)
     return applications
 
 
@@ -61,7 +60,6 @@ def get_databases(app):
         if app_config['application'] == app:
             for db in app_config['databases']:
                 database_names.append(db["name"])
-    print(database_names)
     return database_names
 
 

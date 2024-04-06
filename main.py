@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import tkinter as tk
@@ -94,13 +93,15 @@ class Application:
         self.backups_combobox = None  # Даты / папки
         self.backups_listbox = None   # Таблицы / json файлы
         self.db_params = None
+        self.current_app = None
+        self.current_db = None
         self.create_widgets()
 
     def create_widgets(self):
 
         # Applications
         frame_app = ttk.LabelFrame(self.root, text="Applications")
-        frame_app.grid(row=0, column=0, rowspan=2, padx=10, pady=10, sticky="nesw")
+        frame_app.grid(row=0, column=0, rowspan=1, padx=10, pady=10, sticky="nesw")
         self.app_listbox = tk.Listbox(frame_app, width=30, listvariable=self.cur_app_selection)
         self.app_listbox.bind('<<ListboxSelect>>', self._app_click_handler)
         for item in get_applications():
@@ -109,14 +110,14 @@ class Application:
 
         # Databases
         frame_db = ttk.LabelFrame(self.root, text="Databases")
-        frame_db.grid(row=0, column=1, rowspan=2, padx=10, pady=10, sticky="nesw")
+        frame_db.grid(row=0, column=1, rowspan=1, padx=10, pady=10, sticky="nesw")
         self.db_listbox = tk.Listbox(frame_db, width=30, listvariable=self.cur_db_selection)
         self.db_listbox.bind('<<ListboxSelect>>', self._db_list_click_handler)
-        self.db_listbox.pack(expand=False, fill='both')
+        self.db_listbox.pack(expand=True, fill='both')
 
         # Tables
         frame_tables = ttk.LabelFrame(self.root, text="Таблицы")
-        frame_tables.grid(row=0, column=2, rowspan=2, padx=10, pady=10, sticky="nesw")
+        frame_tables.grid(row=0, column=2, rowspan=1, padx=10, pady=10, sticky="nesw")
         self.tables_listbox = tk.Listbox(frame_tables, width=30, selectmode=tk.MULTIPLE)
         self.tables_listbox.pack(expand=True, fill='both')
 
@@ -125,10 +126,10 @@ class Application:
         frame_backups.grid(row=0, column=3, padx=10, pady=10, sticky="nesw")
         self.backups_combobox = ttk.Combobox(frame_backups, state='readonly', width=30)
         self.backups_combobox.bind('<<ComboboxSelected>>', self._backup_dirs_select_handler)
-        self.backups_combobox.pack(expand=True, fill='both')
+        self.backups_combobox.pack(expand=False, fill='both')
 
         self.backups_listbox = tk.Listbox(frame_backups, width=30, selectmode=tk.MULTIPLE)
-        self.backups_listbox.pack(expand=True, fill='both')
+        self.backups_listbox.pack(expand=False, fill='both')
 
         # Config
         frame_params = ttk.LabelFrame(self.root, text="Database Parameters")
@@ -156,6 +157,8 @@ class Application:
         close_button.pack(side=tk.LEFT, padx=5)
 
     def _app_click_handler(self, evt):
+        self.current_db = None
+        self.db_params.delete(1.0, tk.END)
         cur_app_selection = self.app_listbox.curselection()
         if cur_app_selection:
             app = self.app_listbox.get(self.app_listbox.curselection())
@@ -166,6 +169,9 @@ class Application:
 
     def _db_list_click_handler(self, evt):
         # Подгружаем конфиг
+        db_index = self.db_listbox.curselection()
+        if len(db_index) > 0:
+            self.current_db = self.db_listbox.get(db_index)
         self._load_db_config(evt)
         # Подгружаем таблицы
         app, db = self._get_selected_app_and_db()
@@ -180,7 +186,11 @@ class Application:
 
     def _get_selected_app_and_db(self) -> Tuple[str, str]:
         app = self.app_listbox.get('active')
-        db = self.db_listbox.get('active')
+        db = self.current_db
+        # db_index = self.db_listbox.curselection()
+        # if db_index:
+        #     db = self.db_listbox.get(db_index)  # get('active')
+        #     print('app, db: ', app, db)
         return app, db
 
     def _load_db_config(self, evt):
@@ -206,7 +216,6 @@ class Application:
 
         json_files = get_backup_files(app, dir_backup)
         self.backups_listbox.delete(0, tk.END)
-        print(json_files)
         for json_file in json_files:
             self.backups_listbox.insert(tk.END, json_file)
 
@@ -229,7 +238,6 @@ class Application:
         selected_tables = [self.tables_listbox.get(idx) for idx in selected_indices]
         backup(app, db, selected_tables)
 
-
     def save_config(self):
         application = self.app_listbox.get()
         database = self.db_listbox.get()
@@ -238,6 +246,7 @@ class Application:
 
 def run():
     root = tk.Tk()
+    root.title('PostgreSQL - JSON backup utility')
     app = Application(root)
     root.mainloop()
 
