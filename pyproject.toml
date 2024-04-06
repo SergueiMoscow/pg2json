@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "pg2json"
+version = "0.1.0"
+description = ""
+authors = ["Сергей Сушков <sushkov_sv@ursip.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+psycopg2 = "^2.9.9"
+environs = "^11.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

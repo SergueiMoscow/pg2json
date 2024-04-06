@@ -1,0 +1,62 @@
+[
+  {
+    "application": "my_application_1",
+    "databases": [
+      {
+        "name": "remote_server",
+        "config": {
+          "dsn": "postgresql://my_name:my_password@0.0.0.0:5434/my_database",
+          "schema": "public"
+        }
+      },
+      {
+        "name": "local",
+        "config": {
+          "dsn": "postgresql://postgres:postgres@localhost:5432/my_database",
+          "schema": "public"
+        }
+      }
+    ],
+    "backup_dir": "/home/my_name/DB_Backups"
+  },
+  {
+    "application": "my_app_2",
+    "databases": [
+      {
+        "name": "home_server",
+        "config": {
+          "dsn": "postgresql://my_name:my_pass@192.168.100.2:5435/my_database_app_2",
+          "schema": "public"
+        }
+      },
+      {
+        "name": "local",
+        "config": {
+          "dsn": "postgresql://postgres:postgres@localhost:5432/my_database_app_2",
+          "schema": "public"
+        }
+      }
+    ],
+    "backup_dir": "/home/my_name/DB_Backups"
+  },
+  {
+    "application": "my_app_3",
+    "databases": [
+      {
+        "name": "home_server",
+        "config": {
+          "dsn": "postgresql://postgres:postgres@192.168.100.2:5432/my_db_for_app_3",
+          "schema": "main"
+        }
+      },
+      {
+        "name": "local",
+        "config": {
+          "dsn": "postgresql://postgres:postgres@localhost:5432/my_app_3",
+          "schema": "main"
+        }
+      }
+    ],
+    "backup_dir": "/home/sergey/DB_Backups"
+  }
+]
