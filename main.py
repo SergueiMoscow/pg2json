@@ -5,6 +5,7 @@ from tkinter import ttk, Text
 from typing import List, Tuple
 
 from services import utils
+from services.json2pg import json_to_table
 from services.pg2json import table_to_json
 from services.utils import get_connection, get_applications, get_app_config, get_databases, get_db_config, \
     get_backup_full_dir
@@ -73,8 +74,25 @@ def backup(application, database, tables):
             table_to_json(conn=conn, schema=config['schema'], table=table, output_file=output_file)
 
 
-def restore(application, database):
-    print(f"Restore started for {application} and {database}")
+def restore(
+    application: str,   # app name from config.json
+    database: str,      # database name from config.json
+    tables: List[str],  # tables selected to restore
+    added_backup_dir,         # additional backup directory (db/YYYY-MM-DD only)
+):
+    print(f"Restore started for {application} db: {database} tables: {tables}")
+    app_config = get_app_config(application)
+    db_config = get_db_config(application, database)
+    base_backup_dir = app_config.get('backup_dir')
+    full_backup_dir = str(os.path.join(base_backup_dir, application, added_backup_dir))
+    print(f"from {full_backup_dir}")
+    uri = db_config['dsn']
+    schema = db_config['schema']
+    options = db_config.get('options')
+    with get_connection(db_config['dsn']) as conn:
+        for table in tables:
+            input_file = os.path.join(full_backup_dir, f'{table}.json')
+            json_to_table(uri, schema, table, input_file, options)
 
 
 class Application:
@@ -150,7 +168,7 @@ class Application:
         backup_button = ttk.Button(frame_ops, text="Backup", command=self._backup)
         backup_button.pack(side=tk.LEFT, padx=5)
 
-        restore_button = ttk.Button(frame_ops, text="Restore", command=restore)
+        restore_button = ttk.Button(frame_ops, text="Restore", command=self._restore)
         restore_button.pack(side=tk.LEFT, padx=5)
 
         close_button = ttk.Button(frame_ops, text="Close", command=self.root.destroy)
@@ -187,10 +205,6 @@ class Application:
     def _get_selected_app_and_db(self) -> Tuple[str, str]:
         app = self.app_listbox.get('active')
         db = self.current_db
-        # db_index = self.db_listbox.curselection()
-        # if db_index:
-        #     db = self.db_listbox.get(db_index)  # get('active')
-        #     print('app, db: ', app, db)
         return app, db
 
     def _load_db_config(self, evt):
@@ -200,7 +214,7 @@ class Application:
         if app and db:
             db_config = get_db_config(app, db)
             for k, v in db_config.items():
-                text += k + ' = ' + v + '\n'
+                text += k + ' = ' + str(v) + '\n'
 
             self.db_params.insert(tk.END, text)
 
@@ -212,36 +226,49 @@ class Application:
     def _backup_dirs_select_handler(self, evt):
         app, db = self._get_selected_app_and_db()
         backup_db, backup_date = [part.strip() for part in self.backups_combobox.get().split('/')]
-        dir_backup = str(os.path.join(backup_db, backup_date))
+        backup_dir = str(os.path.join(backup_db, backup_date))
 
-        json_files = get_backup_files(app, dir_backup)
+        json_files = get_backup_files(app, backup_dir)
         self.backups_listbox.delete(0, tk.END)
         for json_file in json_files:
             self.backups_listbox.insert(tk.END, json_file)
+        self._select_default_backup_tables(self.backups_listbox)
 
-    def _select_default_backup_tables(self):
+    def _select_default_backup_tables(self, listbox = None):
+        # listbox = self.tables_listbox or backup_listbox
+        # default - self.tables_listbox
+        if listbox is None:
+            listbox = self.tables_listbox
         app, db = self._get_selected_app_and_db()
         tables = get_default_app_tables(app)
         if len(tables) == 0:
             # select all tables
-            for i in range(self.tables_listbox.size()):
+            for i in range(listbox.size()):
                 self.tables_listbox.selection_set(i)
         else:
             # select configured tables
-            for i in range(self.tables_listbox.size()):
-                if self.tables_listbox.get(i) in tables:
-                    self.tables_listbox.selection_set(i)
+            for i in range(listbox.size()):
+                if listbox.get(i) in tables:
+                    listbox.selection_set(i)
 
     def _backup(self):
         app, db = self._get_selected_app_and_db()
-        selected_indices = self.tables_listbox.curselection()
-        selected_tables = [self.tables_listbox.get(idx) for idx in selected_indices]
+        selected_tables_idx = self.tables_listbox.curselection()
+        selected_tables = [self.tables_listbox.get(idx) for idx in selected_tables_idx]
         backup(app, db, selected_tables)
 
     def save_config(self):
         application = self.app_listbox.get()
         database = self.db_listbox.get()
         save_db_config(application, database)
+
+    def _restore(self):
+        app, db = self._get_selected_app_and_db()
+        selected_tables_idx = self.backups_listbox.curselection()
+        selected_tables = [self.backups_listbox.get(idx) for idx in selected_tables_idx]
+        backup_db, backup_date = [part.strip() for part in self.backups_combobox.get().split('/')]
+        backup_dir = str(os.path.join(backup_db, backup_date))
+        restore(app, db, selected_tables, backup_dir)
 
 
 def run():
