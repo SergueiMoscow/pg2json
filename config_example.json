@@ -53,10 +53,12 @@
         "name": "local",
         "config": {
           "dsn": "postgresql://postgres:postgres@localhost:5432/my_app_3",
-          "schema": "main"
+          "schema": "main",
+          "options": ["ignore_unique_violations"]
         }
       }
     ],
-    "backup_dir": "/home/sergey/DB_Backups"
+    "backup_dir": "/home/sergey/DB_Backups",
+    "tables": ["my_table2", "my_table2"]
   }
 ]
