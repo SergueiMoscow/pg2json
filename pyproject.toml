@@ -6,9 +6,11 @@ authors = ["Сергей Сушков <sushkov_sv@ursip.ru>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.12,<3.13"
 psycopg2 = "^2.9.9"
 environs = "^11.0.0"
+pyinstaller = "^6.5.0"
+python-dateutil = "^2.9.0.post0"
 
 
 [build-system]

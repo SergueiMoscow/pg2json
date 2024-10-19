@@ -1,0 +1,23 @@
+# Черновик копирования с одной БД на другую.
+import subprocess
+from django.db import connections
+
+def is_db_empty():
+    with connections['default'].cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM your_main_table")
+        row_count = cursor.fetchone()[0]
+        return row_count == 0
+
+def backup_remote_db():
+    subprocess.run([
+        "pg_dump", "-h", "remote_host", "-U", "remote_user", "-W", "-d", "remote_db", "-F", "c", "-f", "db_backup.dump"
+    ])
+
+def restore_local_db():
+    subprocess.run([
+        "pg_restore", "-h", "localhost", "-U", "local_user", "-W", "-d", "local_db", "db_backup.dump"
+    ])
+
+if is_db_empty():
+    backup_remote_db()
+    restore_local_db()

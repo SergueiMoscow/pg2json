@@ -63,16 +63,24 @@ def json_to_table(uri, schema, table, input_file, options: list | None = None):
             except psycopg2.errors.InFailedSqlTransaction as e:
                 # Возможно unique violation
                 pass
+            except psycopg2.errors.ForeignKeyViolation as e:
+                # Запись может ссылаться на другую запись в этой же таблице
+                print(f'ForeignViolationError:\n{query}\nvalues: {values}\nError: {e}')
+                errors += 1
+                continue
             except Exception as e:
-                print(f'Error {e}\nExecuting query:\n{query}\nvalues: {values}')
+                print(f'Error {e}\nExecuting query:\n{query}\nvalues: {values}, error: {e}')
                 errors += 1
                 break
 
+        # Обновляем счётчик последовательности после вставки всех записей
+        sequence_update_query = f'SELECT setval(pg_get_serial_sequence(\'"{schema}"."{table}"\', \'id\'), COALESCE(MAX(id), 1)) FROM "{schema}"."{table}";'
+        cursor.execute(sequence_update_query)
         # Применяем изменения
         conn.commit()
         print(f"{processed_records} rows loaded into {table} from file {input_file}, {unique_violations} unique violations, {errors} errors.")
 
-    except (Exception, psycopg2.DatabaseError) as error:
+    except psycopg2.DatabaseError as error:
         print("Ошибка при работе с PostgreSQL", error)
 
     finally:
@@ -86,5 +94,5 @@ if __name__ == '__main__':
     uri = 'postgresql://postgres:postgres@localhost:5432/django_bitza'
     schema = 'public'
     table_name = 'rent_payment'
-    input_file = "rent_payment.json"
-    json_to_table(uri, schema, table_name, input_file)
+    input_file = "/home/sergey/DB_Backups/bitza/timeweb/2024-04-08/rent_payment.json"
+    json_to_table(uri, schema, table_name, input_file, options=['ignore_unique_violations'])
